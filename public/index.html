@@ -2,8 +2,18 @@
 <html>
 <head>
     <title></title>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+    <div class="imagebox" v-for="each in images">
+        <h1>{{each.title}}</h1>
+        <p>{{each.description}}</p>
+        <a :href="'#' + each.id">
+          <img :src="each.url" :id="each.id" alt="" @click="checkid">
+          <p>by {{each.username}}</p>
+        </a>
+      </div>
+    <script src="/js/>script.js" charset="utf-8"></script>
     <script src="/js/vue.js"></script>
     <script src="/js/axios.min.js"></script>
 </body>
