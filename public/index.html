@@ -1,20 +1,28 @@
 <!doctype html>
 <html>
 <head>
-    <title></title>
+    <title>Imageboard</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <div class="imagebox" v-for="each in images">
-        <h1>{{each.title}}</h1>
-        <p>{{each.description}}</p>
-        <a :href="'#' + each.id">
-          <img :src="each.url" :id="each.id" alt="" @click="checkid">
-          <p>by {{each.username}}</p>
-        </a>
-      </div>
-    <script src="/js/>script.js" charset="utf-8"></script>
+    <div id="main">
+        <form>
+            <input v-model='form.title' name="title" type="text" placeholder="image title">
+            <input v-model='form.description'name="description"type="text" placeholder="image description">
+            <input v-model='form.username'name="username"type="text" placeholder="image username">
+            <input name="file"type="file" accept="image/*" @change='handleFileChange'>
+            <button @click.stop.prevent = 'uploadFile'>Upload</button>
+        </form>
+
+        <div class="imagebox" v-for="each in images">
+            <h1>{{each.title}}</h1>
+            <p>{{each.description}}</p>
+            <img :src="each.url" :id="each.id" alt="">
+            <p>by {{each.username}}</p>
+        </div>
+    </div>
     <script src="/js/vue.js"></script>
     <script src="/js/axios.min.js"></script>
+    <script src="/js/script.js" charset="utf-8"></script>
 </body>
 </html>
