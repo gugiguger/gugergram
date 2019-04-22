@@ -1,15 +1,18 @@
 const express = require("express");
-const app = express();
 const db = require("./db");
-const bodyParser = require("body-parser");
-const config = require("./config");
-const s3 = require("./s3");
-
+const app = express();
 const multer = require("multer");
 const uidSafe = require("uid-safe");
 const path = require("path");
+const s3 = require("./s3");
+const config = require("./config");
+const bodyParser = require("body-parser");
 
-const diskStorage = multer.diskStorage({
+app.use(express.static("./public"));
+
+app.use(bodyParser.json());
+
+var diskStorage = multer.diskStorage({
     destination: function(req, file, callback) {
         callback(null, __dirname + "/uploads");
     },
@@ -20,46 +23,120 @@ const diskStorage = multer.diskStorage({
     }
 });
 
-const uploader = multer({
+var uploader = multer({
     storage: diskStorage,
     limits: {
         fileSize: 2097152
     }
 });
 
-app.use(bodyParser.json());
-app.use(express.static("./public"));
-app.use(express.static("./uploads"));
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////UPLOAD PART/////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 
 app.post("/upload", uploader.single("file"), s3.upload, function(req, res) {
-    // If nothing went wrong the file is already in the uploads directory\
-    let fullUrl = config.s3url + req.file.filename;
-    db.insertData(
-        fullUrl,
-        req.body.username,
+    // console.log('post upload');
+    // console.log('req.body + file: ', req.body, req.file);
+    // console.log("config.s3Url + req.file.filename: ", config.s3Url + req.file.filename);
+    db.addImage(
+        config.s3Url + req.file.filename,
+        req.body.name,
         req.body.title,
         req.body.description
-    )
-        .then(function(result) {
+    ).then(({ rows }) => {
+        res.json(rows[0]);
+    });
+});
+
+app.get("/images", (req, res) => {
+    db.getImages()
+        .then(result => {
+            // console.log("result: ", result);
             res.json(result.rows);
         })
-        .catch(function(err) {
-            console.log(err);
-
-            res.json({
-                success: false
-            });
+        .catch(err => {
+            console.log("error in get/images: ", err);
         });
 });
 
-app.get("/get-info", (req, res) => {
-    db.getData()
-        .then(function(results) {
-            res.json(results.rows);
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////MODAL PART/////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+
+// app.get('/modal', (req, res) => {
+//     db.getImgComments().then(dbData => {
+//         console.log('dbData', dbData);
+//         res.json(dbData.rows);
+//     }).catch(err => {
+//         console.log("error in post/modal: ", err);
+//     });
+// });
+//
+// app.post('/modal', (req, res) => {
+//     db.addComments().then(dbData => {
+//         console.log('dbData', dbData);
+//         res.json(dbData.rows);
+//     }).catch(err => {
+//         console.log("error in get/modal: ", err);
+//     });
+// });
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////COMMENT PART/////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+
+app.get("/image/:id/data", (req, res) => {
+    db.getImageData(req.params.id)
+        .then(result => {
+            console.log(result.rows);
+
+            res.json(result.rows);
         })
-        .catch(function(err) {
-            console.log(err);
+        .catch(err => {
+            console.log("error in /image/:id/data: ", err);
         });
 });
 
-app.listen(8080, () => console.log(`I'm listening`));
+app.get("/image/:id/comments", (req, res) => {
+    if (req.params.id) {
+        db.getImgComments(req.params.id)
+            .then(result => {
+                res.json(result.rows);
+            })
+            .catch(err => {
+                console.log("error in /image/:id/comments ", err);
+            });
+    }
+});
+
+app.post("/comment/:id/add", (req, res) => {
+    db.addComment(req.body.name, req.body.text, req.params.id)
+        .then(result => {
+            console.log("result.rows: ", result.rows);
+            res.json(result.rows);
+        })
+        .catch(err => {
+            console.log("error in /comment/:id/add ", err);
+        });
+});
+
+app.get("image/:id/more", (req, res) => {
+    db.getMoreImages(req.params.id)
+        .then(result => {
+            res.json(result.rows);
+        })
+        .catch(err => {
+            console.log("error in GET /more ", err);
+        });
+});
+
+app.get("/images/:id/more", (req, res) => {
+    Promise.all([db.getMoreImages(req.params.id), db.getLowestId()]).then(
+        result => {
+            res.json(result);
+        }
+    );
+});
+
+app.listen(8080, () => console.log("Listening!"));
+// unshift to move the stuff in the beginning of the array , pass to front
